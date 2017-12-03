@@ -22,8 +22,8 @@ function createApp (db) {
 }
 
 describe('express-rest-mongo', () => {
-  let app,
-    db
+  let app;
+  let db;
 
   app = createApp('mongodb://localhost:27017/express-rest-mongo-test')
   db = app.db
@@ -46,11 +46,11 @@ describe('express-rest-mongo', () => {
       it('should find all', (done) => {
         request(app).get('/api/v1/users')
           .expect(200)
-          .end((err, res) => {
+          .end((err, {text, headers}) => {
             if (err) return done(err)
-            const result = JSON.parse(res.text)
+            const result = JSON.parse(text)
             assert.equal(result.length, 2)
-            assert.equal(res.headers['x-total-count'], 2)
+            assert.equal(headers['x-total-count'], 2)
             assert.notOk(result[0]._id, 'do not expect _id')
             assert.notOk(result[1]._id, 'do not expect _id')
             assert.ok(result[0].id, 'expect id')
@@ -61,11 +61,11 @@ describe('express-rest-mongo', () => {
       it('should find by query', (done) => {
         request(app).get('/api/v1/users?name=Bob')
           .expect(200)
-          .end((err, res) => {
+          .end((err, {text, headers}) => {
             if (err) return done(err)
-            const result = JSON.parse(res.text)
+            const result = JSON.parse(text)
             assert.equal(result.length, 1)
-            assert.equal(res.headers['x-total-count'], 1)
+            assert.equal(headers['x-total-count'], 1)
             assert.equal(result[0].name, 'Bob')
             assert.notOk(result[0]._id, 'do not expect _id')
             assert.ok(result[0].id, 'expect id')
@@ -75,21 +75,21 @@ describe('express-rest-mongo', () => {
       it('should find none by query', (done) => {
         request(app).get('/api/v1/users?name=None')
           .expect(200)
-          .end((err, res) => {
+          .end((err, {text, headers}) => {
             if (err) return done(err)
-            const result = JSON.parse(res.text)
+            const result = JSON.parse(text)
             assert.equal(result.length, 0)
-            assert.equal(res.headers['x-total-count'], 0)
+            assert.equal(headers['x-total-count'], 0)
             done()
           })
       })
       it('can return an envelope', (done) => {
         request(app).get('/api/v1/users?name=Bob&envelope=true')
           .expect(200)
-          .end((err, res) => {
+          .end((err, {text, headers}) => {
             if (err) return done(err)
-            const result = JSON.parse(res.text)
-            assert.equal(res.headers['x-total-count'], 1)
+            const result = JSON.parse(text)
+            assert.equal(headers['x-total-count'], 1)
             assert.ok(result.users, 'expect envelope')
             assert.equal(result.users.length, 1)
             assert.equal(result.users[0].name, 'Bob')
@@ -106,9 +106,9 @@ describe('express-rest-mongo', () => {
           .set('Content-Type', 'application/json')
           .send({ name: 'Carl', email: 'carl@example.com' })
           .expect(201)
-          .end((err, res) => {
+          .end((err, {text}) => {
             if (err) return done(err)
-            const result = JSON.parse(res.text)
+            const result = JSON.parse(text)
             assert.notOk(result._id, 'do not expect _id')
             assert.ok(result.id, 'expect id')
             done()
@@ -129,9 +129,9 @@ describe('express-rest-mongo', () => {
           .set('Content-Type', 'application/json')
           .send({ name: 'Carl', email: 'carl@example.com' })
           .expect(201)
-          .end((err, res) => {
+          .end((err, {text}) => {
             if (err) return done(err)
-            const result = JSON.parse(res.text)
+            const result = JSON.parse(text)
             assert.ok(result.user, 'expect envelope')
             assert.notOk(result.user._id, 'do not expect _id')
             assert.ok(result.user.id, 'expect id')
@@ -200,9 +200,9 @@ describe('express-rest-mongo', () => {
       it('should find one', (done) => {
         request(app).get('/api/v1/users/0001')
           .expect(200)
-          .end((err, res) => {
+          .end((err, {text}) => {
             if (err) return done(err)
-            const result = JSON.parse(res.text)
+            const result = JSON.parse(text)
             assert.notOk(result._id, 'do not expect _id')
             assert.equal(result.id, '0001')
             assert.equal(result.name, 'Bob')
@@ -210,13 +210,13 @@ describe('express-rest-mongo', () => {
           })
       })
       it('should find one by generated id', (done) => {
-        db.users.findOne({ name: 'Judy' }, (e, result) => {
-          const id = result._id
+        db.users.findOne({ name: 'Judy' }, (e, {_id}) => {
+          const id = _id
           request(app).get(`/api/v1/users/${id}`)
             .expect(200)
-            .end((err, res) => {
+            .end((err, {text}) => {
               if (err) return done(err)
-              const result = JSON.parse(res.text)
+              const result = JSON.parse(text)
               assert.notOk(result._id, 'do not expect _id')
               assert.equal(result.id, id)
               assert.equal(result.name, 'Judy')
@@ -235,9 +235,9 @@ describe('express-rest-mongo', () => {
       it('can return an envelope', (done) => {
         request(app).get('/api/v1/users/0001?envelope=true')
           .expect(200)
-          .end((err, res) => {
+          .end((err, {text}) => {
             if (err) return done(err)
-            const result = JSON.parse(res.text)
+            const result = JSON.parse(text)
             assert.ok(result.user, 'expect envelope')
             assert.notOk(result.user._id, 'do not expect _id')
             assert.equal(result.user.id, '0001')
@@ -266,31 +266,31 @@ describe('express-rest-mongo', () => {
           .set('Content-Type', 'application/json')
           .send({ name: 'Bobby', email: 'bobby@example.com' })
           .expect(200)
-          .end((err, res) => {
+          .end((err, {text}) => {
             if (err) return done(err)
-            const result = JSON.parse(res.text)
+            const result = JSON.parse(text)
             assert.equal(result.id, '0001')
             assert.notOk(result._id)
-            db.users.findOne({ _id: '0001' }, (e, result) => {
-              assert.equal(result.name, 'Bobby')
+            db.users.findOne({ _id: '0001' }, (e, {name}) => {
+              assert.equal(name, 'Bobby')
               done()
             })
           })
       })
       it('should update document by generated id', (done) => {
-        db.users.findOne({ name: 'Judy' }, (e, result) => {
-          const id = result._id
+        db.users.findOne({ name: 'Judy' }, (e, {_id}) => {
+          const id = _id
           request(app).put(`/api/v1/users/${id}`)
             .set('Content-Type', 'application/json')
             .send({ name: 'Judith', email: 'judith@example.com' })
             .expect(200)
-            .end((err, res) => {
+            .end((err, {text}) => {
               if (err) return done(err)
-              const result = JSON.parse(res.text)
+              const result = JSON.parse(text)
               assert.notOk(result._id, 'do not expect _id')
               assert.equal(result.id, id)
-              db.users.findOne({ _id: id }, (e, result) => {
-                assert.equal(result.name, 'Judith')
+              db.users.findOne({ _id: id }, (e, {name}) => {
+                assert.equal(name, 'Judith')
                 done()
               })
             })
@@ -301,13 +301,13 @@ describe('express-rest-mongo', () => {
           .set('Content-Type', 'application/json')
           .send({ name: 'Carl', email: 'carl@example.com' })
           .expect(200)
-          .end((err, res) => {
+          .end((err, {text}) => {
             if (err) return done(err)
-            const result = JSON.parse(res.text)
+            const result = JSON.parse(text)
             assert.notOk(result._id, 'do not expect _id')
             assert.equal(result.id, '0002')
-            db.users.findOne({ _id: '0002' }, (e, result) => {
-              assert.equal(result.name, 'Carl')
+            db.users.findOne({ _id: '0002' }, (e, {name}) => {
+              assert.equal(name, 'Carl')
               done()
             })
           })
@@ -327,14 +327,14 @@ describe('express-rest-mongo', () => {
           .set('Content-Type', 'application/json')
           .send({ name: 'Bobby', email: 'bobby@example.com' })
           .expect(200)
-          .end((err, res) => {
+          .end((err, {text}) => {
             if (err) return done(err)
-            const result = JSON.parse(res.text)
+            const result = JSON.parse(text)
             assert.ok(result.user, 'expect envelope')
             assert.equal(result.user.id, '0001')
             assert.notOk(result.user._id)
-            db.users.findOne({ _id: '0001' }, (e, result) => {
-              assert.equal(result.name, 'Bobby')
+            db.users.findOne({ _id: '0001' }, (e, {name}) => {
+              assert.equal(name, 'Bobby')
               done()
             })
           })
@@ -350,13 +350,13 @@ describe('express-rest-mongo', () => {
             { op: 'replace', path: '/email', value: 'bobby@example.com' }
           ])
           .expect(200)
-          .end((err, res) => {
+          .end((err, {text}) => {
             if (err) return done(err)
-            const result = JSON.parse(res.text)
+            const result = JSON.parse(text)
             assert.notOk(result._id, 'do not expect _id')
             assert.equal(result.id, '0001')
-            db.users.findOne({ _id: '0001' }, (e, result) => {
-              assert.equal(result.name, 'Bobby')
+            db.users.findOne({ _id: '0001' }, (e, {name}) => {
+              assert.equal(name, 'Bobby')
               done()
             })
           })
@@ -369,14 +369,14 @@ describe('express-rest-mongo', () => {
             { op: 'replace', path: '/email', value: 'bobby@example.com' }
           ])
           .expect(200)
-          .end((err, res) => {
+          .end((err, {text}) => {
             if (err) return done(err)
-            const result = JSON.parse(res.text)
+            const result = JSON.parse(text)
             assert.ok(result.user, 'expect envelope')
             assert.notOk(result.user._id, 'do not expect _id')
             assert.equal(result.user.id, '0001')
-            db.users.findOne({ _id: '0001' }, (e, result) => {
-              assert.equal(result.name, 'Bobby')
+            db.users.findOne({ _id: '0001' }, (e, {name}) => {
+              assert.equal(name, 'Bobby')
               done()
             })
           })
@@ -402,8 +402,8 @@ describe('express-rest-mongo', () => {
       })
 
       it('should remove document by generated id', (done) => {
-        db.users.findOne({ name: 'Judy' }, (e, result) => {
-          const id = result._id
+        db.users.findOne({ name: 'Judy' }, (e, {_id}) => {
+          const id = _id
           assert.ok(id, 'expect match to exist')
           request(app).delete(`/api/v1/users/${id}`)
             .expect(204)

@@ -19,43 +19,43 @@ const ciphers = 'ECDHE-RSA-AES128-SHA256:AES128-GCM-SHA256:RC4:HIGH:!MD5:!aNULL:
 
 try {
   if (process.env.PFX) {
-    var options = {
-      pfx: fs.readFileSync(process.env.PFX),
-      passphrase: process.env.PASSPHRASE,
-      ciphers,
-      honorCipherOrder: true
-    }
-    createServer(options, port, db)
+  var options = {
+    pfx: fs.readFileSync(process.env.PFX),
+    passphrase: process.env.PASSPHRASE,
+    ciphers,
+    honorCipherOrder: true
+  }
+  createServer(options, port, db)
   } else if (process.env.KEY || process.env.CERT) {
-    if (!process.env.KEY) throw 'CERT defined, but KEY is not'
-    if (!process.env.CERT) throw 'KEY defined, but CERT is not'
-    var options = {
-      key: fs.readFileSync(process.env.KEY),
-      cert: fs.readFileSync(process.env.CERT),
-      passphrase: process.env.PASSPHRASE,
-      ciphers,
-      honorCipherOrder: true
-    }
-    createServer(options, port, db)
+  if (!process.env.KEY) throw 'CERT defined, but KEY is not'
+  if (!process.env.CERT) throw 'KEY defined, but CERT is not'
+  var options = {
+    key: fs.readFileSync(process.env.KEY),
+    cert: fs.readFileSync(process.env.CERT),
+    passphrase: process.env.PASSPHRASE,
+    ciphers,
+    honorCipherOrder: true
+  }
+  createServer(options, port, db)
   } else {
-    pem.createCertificate({ days: 9999, selfSigned: true }, (err, keys) => {
-      const options = {
-        key: keys.serviceKey,
-        cert: keys.certificate,
-        ciphers,
-        honorCipherOrder: true
-      }
-      if (err) throw (err)
-      createServer(options, port, db)
-    })
+  pem.createCertificate({ days: 9999, selfSigned: true }, (err, {serviceKey, certificate}) => {
+    const options = {
+    key: serviceKey,
+    cert: certificate,
+    ciphers,
+    honorCipherOrder: true
+    }
+    if (err) throw (err)
+    createServer(options, port, db)
+  })
   }
 } catch (err) {
   console.error(err.message || err)
 }
 
 function createServer (options, port, db) {
-  let app,
-    server
+  let app;
+  let server;
 
   app = express()
   app.use(compress())
@@ -67,9 +67,9 @@ function createServer (options, port, db) {
 
   server = https.createServer(options, app)
   server.listen(port, () => {
-    const addr = server.address()
-    const bind = (typeof addr === 'string') ? `pipe ${addr}` : `port ${addr.port}`
-    console.info(`Listening on ${bind}`)
+  const addr = server.address()
+  const bind = (typeof addr === 'string') ? `pipe ${addr}` : `port ${addr.port}`
+  console.info(`Listening on ${bind}`)
   })
 
   server.on('error', onError)
@@ -87,13 +87,13 @@ function onError (err) {
   const bind = (typeof port === 'string') ? `pipe ${port}` : `port ${port}`
 
   switch (err.code) {
-    case 'EACCES':
-      console.error(`EACCESS, ${bind} requires elevated privileges`)
-      break
-    case 'EADDRINUSE':
-      console.error(`EADDRINUSE, ${bind} is already in use`)
-      break
-    default:
-      throw err
+  case 'EACCES':
+    console.error(`EACCESS, ${bind} requires elevated privileges`)
+    break
+  case 'EADDRINUSE':
+    console.error(`EADDRINUSE, ${bind} is already in use`)
+    break
+  default:
+    throw err
   }
 }
