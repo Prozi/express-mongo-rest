@@ -25,10 +25,12 @@ module.exports = function expressMongodbRest(db, options) {
 
     if (options.validator) router.use(options.validator)
 
-    addRestMethods(router, options.singularize || inflector.singularize)
-    router.use('/:collection', convertId)
-    router.use('/:collection', envelope)
-    router.use('/:collection', sendJson)
+    const auth = options.auth || ((req, res, next) => next())
+
+    addRestMethods(router, options.singularize || inflector.singularize, auth)
+    router.use('/:collection', auth, convertId)
+    router.use('/:collection', auth, envelope)
+    router.use('/:collection', auth, sendJson)
     return router
 }
 
@@ -50,7 +52,7 @@ function normalizeId(id) {
     return id;
 }
 
-function addRestMethods(router, singularize) {
+function addRestMethods(router, singularize, auth) {
     router.param('collection', function collectionParam(req, res, next, collection) {
         res.locals.plural = collection
         res.locals.singular = singularize(collection)
@@ -63,7 +65,7 @@ function addRestMethods(router, singularize) {
         next()
     })
 
-    router.get('/:collection', function (req, res, next) {
+    router.get('/:collection', auth, function (req, res, next) {
         var query = query2m(req.query, { ignore: 'envelope' })
 
         req.collection.count(query.criteria, function (e, count) {
@@ -80,7 +82,7 @@ function addRestMethods(router, singularize) {
         })
     })
 
-    router.post('/:collection', function (req, res, next) {
+    router.post('/:collection', auth, function (req, res, next) {
         if (!req.body || isEmpty(req.body)) throw { status: 400, message: 'No Request Body' } // Bad Request
         req.collection.insert(req.body, function (e, result) {
             if (e) return next(e)
@@ -91,23 +93,23 @@ function addRestMethods(router, singularize) {
         })
     })
 
-    router.put('/:collection', function (req, res, next) {
+    router.put('/:collection', auth, function (req, res, next) {
         // TODO: bulk update?
         res.status(405).send() // Method Not Allowed
     })
 
-    router.patch('/:collection', function (req, res, next) {
+    router.patch('/:collection', auth, function (req, res, next) {
         res.status(405).send() // Method Not Allowed
     })
 
-    router.delete('/:collection', function (req, res, next) {
+    router.delete('/:collection', auth, function (req, res, next) {
         req.collection.remove({}, null, function (e, result) {
             if (e) return next(e)
             res.status(204).send() // No Content
         })
     })
 
-    router.get('/:collection/:id', function (req, res, next) {
+    router.get('/:collection/:id', auth, function (req, res, next) {
         req.collection.findOne(req.idMatch, function (e, result) {
             if (e) return next(e)
             if (!result) res.status(404) // Not Found
@@ -116,11 +118,11 @@ function addRestMethods(router, singularize) {
         })
     })
 
-    router.post('/:collection/:id', function (req, res, next) {
+    router.post('/:collection/:id', auth, function (req, res, next) {
         res.status(405).send() // Method Not Allowed
     })
 
-    router.put('/:collection/:id', function (req, res, next) {
+    router.put('/:collection/:id', auth, function (req, res, next) {
         if (!req.body || isEmpty(req.body)) throw { status: 400, message: 'No Request Body' } // Bad Request
         req.body._id = normalizeId(req.params.id)
         req.collection.update(req.idMatch, req.body, { upsert: true }, function (e, result) {
@@ -135,7 +137,7 @@ function addRestMethods(router, singularize) {
         })
     })
 
-    router.patch('/:collection/:id', function (req, res, next) {
+    router.patch('/:collection/:id', auth, function (req, res, next) {
         if (!req.body || isEmpty(req.body)) throw { status: 400, message: 'No Request Body' } // Bad Request
         req.collection.update(req.idMatch, patch2m(req.body), function (e, result) {
             if (e) return next(e)
@@ -149,7 +151,7 @@ function addRestMethods(router, singularize) {
         })
     })
 
-    router.delete('/:collection/:id', function (req, res, next) {
+    router.delete('/:collection/:id', auth, function (req, res, next) {
         req.collection.remove(req.idMatch, { single: true }, function (e, result) {
             if (e) return next(e)
             res.status(204).send(); // No Content
