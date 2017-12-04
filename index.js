@@ -28,9 +28,9 @@ module.exports = function expressMongodbRest(db, options) {
   const auth = options.auth || ((req, res, next) => next())
 
   addRestMethods(router, options.singularize || inflector.singularize, auth)
-  router.use('/:collection', auth, convertId)
-  router.use('/:collection', auth, envelope)
-  router.use('/:collection', auth, sendJson)
+  router.use('/:collection', convertId)
+  router.use('/:collection', envelope)
+  router.use('/:collection', sendJson)
   return router
 }
 
